@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Case of the Counter Surfer | Macromolecule Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bench:#E9EFEE; --paper:#FFFFFF; --ink:#1D2B36; --muted:#5B6B75;
+  --scrub:#2E7D76; --scrub-dark:#1F5C57; --tag:#F4C542; --line:#C9D5D3;
+  --good:#1F7A3A; --bad:#B3261E;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bench);color:var(--ink);
+  font-family:"Atkinson Hyperlegible",Verdana,Arial,sans-serif;font-size:17px;line-height:1.55}
+h1,h2,h3{font-family:Fredoka,"Trebuchet MS",Arial,sans-serif;font-weight:600;line-height:1.2;margin:0 0 .5em}
+h1{font-size:1.9rem} h2{font-size:1.45rem} h3{font-size:1.1rem}
+p{margin:.4em 0 .8em}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--tag);outline-offset:2px}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:5;background:var(--scrub-dark);color:#fff;padding:.55rem 1rem;
+  display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+.topbar .title{font-family:Fredoka,Arial,sans-serif;font-weight:600;font-size:1.05rem;flex:1;min-width:160px}
+.steps{display:flex;gap:4px}
+.steps span{width:18px;height:8px;border-radius:4px;background:rgba(255,255,255,.28)}
+.partBanner{background:var(--scrub);color:#fff;border-radius:10px;padding:.45rem .9rem;margin-bottom:.8rem;font-family:Fredoka,Arial,sans-serif;font-weight:600;display:flex;gap:.6rem;align-items:center}
+.partBanner b{background:var(--tag);color:var(--ink);border-radius:4px;padding:.05rem .55rem}
+.steps span.gap{margin-left:8px}
+.steps span.done{background:#9FD9D2}
+.steps span.now{background:var(--tag)}
+
+main{max-width:860px;margin:0 auto;padding:1.2rem 1rem 5rem}
+.screen{display:none}
+.screen.active{display:block}
+.sheet{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:1.2rem 1.3rem;margin-bottom:1rem}
+.caseTag{display:inline-block;background:var(--tag);color:var(--ink);font-weight:700;border-radius:4px;
+  padding:.1rem .55rem;font-size:.85rem;transform:rotate(-2deg);margin-bottom:.4rem}
+.readBtn{float:right;background:none;border:2px solid var(--line);border-radius:999px;padding:.2rem .7rem;font-size:.9rem}
+.muted{color:var(--muted)}
+.kw{border-bottom:2px dotted var(--scrub);cursor:help}
+
+/* buttons */
+.btn{background:var(--scrub);color:#fff;border:0;border-radius:10px;padding:.7rem 1.2rem;font-weight:700;min-height:48px}
+.btn:hover{background:var(--scrub-dark)}
+.btn[disabled]{background:#A9B8B6;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--scrub-dark);border:2px solid var(--scrub)}
+.navrow{display:flex;justify-content:space-between;gap:1rem;margin-top:1rem}
+.hintBtn{background:#FFF7DA;border:2px solid var(--tag);border-radius:8px;padding:.35rem .8rem;font-size:.92rem}
+.hint{display:none;background:#FFF7DA;border-left:5px solid var(--tag);padding:.55rem .8rem;border-radius:6px;margin:.5rem 0}
+.hint.show{display:block}
+.fb{font-weight:700;margin:.4rem 0;min-height:1.4em}
+.fb.ok{color:var(--good)} .fb.no{color:var(--bad)}
+
+/* briefing */
+.brief{display:grid;grid-template-columns:1fr 170px;gap:1rem;align-items:center}
+@media(max-width:600px){.brief{grid-template-columns:1fr}.brief svg{max-width:150px;margin:auto}}
+.field{display:flex;flex-direction:column;gap:.2rem;margin:.4rem 0}
+.field input,.field select{border:2px solid var(--line);border-radius:8px;padding:.55rem;min-height:46px}
+.row2{display:grid;grid-template-columns:2fr 1fr;gap:.8rem}
+
+/* flip cards */
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem}
+@media(max-width:560px){.cards{grid-template-columns:1fr}}
+.flip{perspective:900px;height:210px;border:0;background:none;padding:0;text-align:left}
+.flip .in{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.flip.flipped .in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;border:2px solid var(--line);
+  padding:.9rem;background:#fff;display:flex;flex-direction:column}
+.face.front{justify-content:center;align-items:center;text-align:center;background:#F6FAF9}
+.face.front .big{font-family:Fredoka,Arial,sans-serif;font-size:1.35rem;font-weight:600}
+.face.back{transform:rotateY(180deg);font-size:.93rem;line-height:1.4}
+.face.back b{color:var(--scrub-dark)}
+@media (prefers-reduced-motion:reduce){.flip .in{transition:none}}
+
+/* questions */
+.q{border-top:1px dashed var(--line);padding:.7rem 0}
+.q:first-of-type{border-top:0}
+.q select{border:2px solid var(--line);border-radius:8px;padding:.35rem .4rem;min-height:42px;max-width:100%}
+.q select.ok{border-color:var(--good);background:#EAF6EE}
+.q select.no{border-color:var(--bad);background:#FCECEA}
+.opts{display:flex;flex-direction:column;gap:.4rem;margin-top:.3rem}
+.opt{border:2px solid var(--line);border-radius:10px;background:#fff;padding:.6rem .8rem;text-align:left;min-height:48px}
+.opt.ok{border-color:var(--good);background:#EAF6EE}
+.opt.no{border-color:var(--bad);background:#FCECEA}
+
+/* tubes */
+.bench{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin:.6rem 0}
+.tubeWrap{display:flex;flex-direction:column;align-items:center;gap:.25rem;width:84px;text-align:center}
+.tubeWrap .lbl{font-size:.8rem;line-height:1.2;min-height:2.2em}
+.tube{background:none;border:0;padding:0}
+.tube svg{width:48px;height:124px;display:block}
+.tube svg .liq,.tube svg .top{transition:fill .9s ease}
+.tube svg .spot,.tube svg .bagbody,.tube svg .glow{transition:fill .9s ease,opacity .9s ease}
+@media (prefers-reduced-motion:reduce){.tube svg .liq,.tube svg .top,.tube svg .spot,.tube svg .bagbody,.tube svg .glow{transition:none}}
+.obs{font-size:.78rem;min-height:2.4em;color:var(--muted);line-height:1.25}
+.pm{display:flex;gap:4px}
+.pm button{width:38px;height:38px;border-radius:8px;border:2px solid var(--line);background:#fff;font-weight:700;font-size:1.1rem}
+.pm.ask button{border-color:var(--tag);box-shadow:0 0 0 3px rgba(244,197,66,.5);animation:askpulse 1.2s ease-in-out infinite}
+@keyframes askpulse{50%{box-shadow:0 0 0 6px rgba(244,197,66,.15)}}
+@media (prefers-reduced-motion:reduce){.pm.ask button{animation:none}}
+.pm button.ok{border-color:var(--good);background:#EAF6EE;color:var(--good)}
+.pm button.no{border-color:var(--bad);background:#FCECEA;color:var(--bad)}
+.reagentBlock{border:2px solid var(--line);border-radius:12px;padding:.8rem;margin:.7rem 0}
+.reagentBlock h3{display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.ref{display:none;gap:.8rem;flex-wrap:wrap;font-size:.9rem;margin-top:.4rem}
+.ref.show{display:flex}
+.sw{display:flex;align-items:center;gap:.35rem}
+.sw i{width:22px;height:22px;border-radius:50%;border:1px solid #888;display:inline-block}
+.status{font-size:.9rem;color:var(--scrub-dark);font-weight:700;min-height:1.3em;text-align:center}
+
+/* food grid */
+.foodRow{display:grid;grid-template-columns:120px 1fr;gap:.6rem;align-items:center;border-top:1px dashed var(--line);padding:.6rem 0}
+.foodRow:first-child{border-top:0}
+.foodRow .fname{font-weight:700}
+.foodRow .tubes{display:grid;grid-template-columns:repeat(4,minmax(70px,1fr));gap:.3rem}
+@media(max-width:560px){.foodRow{grid-template-columns:1fr}}
+.colhead{display:grid;grid-template-columns:120px 1fr;gap:.6rem;font-size:.82rem;font-weight:700;color:var(--muted)}
+.colhead div:last-child{display:grid;grid-template-columns:repeat(4,minmax(70px,1fr));gap:.3rem;text-align:center}
+@media(max-width:560px){.colhead{display:none}.pm button{width:32px;height:36px}}
+@media(min-width:561px){.foodRow .lbl{display:none}}
+
+/* predict table */
+table.pred{border-collapse:collapse;width:100%;font-size:.95rem}
+table.pred th,table.pred td{border:1px solid var(--line);padding:.35rem;text-align:center}
+table.pred td:first-child,table.pred th:first-child{text-align:left}
+table.pred input{width:24px;height:24px}
+.tablewrap{overflow-x:auto}
+
+/* CER */
+.cer p{line-height:2.2}
+.cer select{border:2px solid var(--line);border-radius:8px;padding:.25rem .3rem;min-height:40px;max-width:100%}
+.cer select.ok{border-color:var(--good);background:#EAF6EE}
+.cer select.no{border-color:var(--bad);background:#FCECEA}
+.cerLabel{font-family:Fredoka,Arial,sans-serif;font-weight:600;color:var(--scrub-dark)}
+
+/* complete */
+.stamp{border:4px solid var(--scrub);border-radius:14px;padding:1rem;text-align:center;transform:rotate(-1deg);background:#F6FAF9}
+.stamp .code{font-family:Fredoka,Arial,sans-serif;font-size:2rem;letter-spacing:.08em}
+.summary{width:100%;border-collapse:collapse;font-size:.92rem;margin-top:.6rem}
+.summary th,.summary td{border:1px solid var(--line);padding:.3rem;text-align:center}
+.summary td:first-child{text-align:left}
+.summary td.miss{background:#FCECEA;color:var(--bad);font-weight:700}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="title">🐾 The Case of the Counter Surfer</div>
+  <div class="steps" id="steps" aria-label="Progress"></div>
+</div>
+
+<main>
+
+<!-- 0 BRIEFING -->
+<section data-part="0" class="screen active" data-title="Briefing">
+  <div class="sheet readable">
+    <button class="readBtn" data-read>🔊 Read to me</button>
+    <span class="caseTag">Case #0923 · Urgent</span>
+    <div class="brief">
+      <div>
+        <h1>A beagle ate something. Your job is to find out what.</h1>
+        <p>Biscuit, a 3-year-old beagle, jumped up on the kitchen counter while his family was at work. Five foods were sitting out. When his family got home, one food was gone — but everything was knocked over, so nobody knows which one he ate.</p>
+        <p>The vet team collected a <span class="kw" title="A small amount taken to be tested">sample</span> from Biscuit's stomach. You are the lab tech. You will use chemical tests to find out which <span class="kw" title="Very large molecules made of smaller building blocks">macromolecules</span> are in the sample, then match it to a food.</p>
+        <p><b>Why it matters:</b> some human foods are dangerous for dogs. The vet needs your answer fast.</p>
+      </div>
+      <svg viewBox="0 0 170 170" role="img" aria-label="Line drawing of a beagle">
+        <g fill="none" stroke="#1D2B36" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M55 70 q30-35 62 0 q10 18 6 40 q-6 28-37 30 q-31-2-37-30 q-4-22 6-40z" fill="#fff"/>
+          <path d="M55 70 q-22 5-24 38 q2 18 16 14 q6-22 10-36" fill="#F4E3C7"/>
+          <path d="M117 70 q22 5 24 38 q-2 18-16 14 q-6-22-10-36" fill="#F4E3C7"/>
+          <circle cx="72" cy="92" r="4" fill="#1D2B36"/><circle cx="100" cy="92" r="4" fill="#1D2B36"/>
+          <ellipse cx="86" cy="115" rx="9" ry="6" fill="#1D2B36"/>
+          <path d="M86 121 v7 M78 130 q8 6 16 0"/>
+                  </g>
+      </svg>
+    </div>
+  </div>
+  <div class="sheet">
+    <h3>Sign in to the lab</h3>
+    <div class="row2">
+      <label class="field">First name and last initial<input id="stuName" autocomplete="off" placeholder="Example: Maya R."></label>
+      <label class="field">Hour
+        <select id="stuHour"><option value="">Pick one</option><option>2nd</option><option>3rd</option><option>4th</option><option>5th</option><option>6th</option></select>
+      </label>
+    </div>
+    <p class="muted">Keep your paper data sheet out. Every time you see ✏️, write it on your sheet too.</p>
+  </div>
+  <div class="navrow"><span></span><button class="btn" id="startBtn" disabled>Start the case</button></div>
+</section>
+
+<!-- 1 MOLECULE FILES -->
+<section data-part="1" class="screen" data-title="Molecule files">
+  <div class="partBanner"><b>Part 1</b> Know your suspects</div>
+  <div class="sheet readable">
+    <button class="readBtn" data-read>🔊 Read to me</button>
+    <h2>Know your suspects</h2>
+    <p>All food is made of four kinds of macromolecules. Each one is a <span class="kw" title="A long chain made of many repeating building blocks">polymer</span> built from smaller building blocks called <span class="kw" title="One small building block">monomers</span>. Tap each card to flip it. ✏️ Fill in the molecule table on your sheet.</p>
+  </div>
+  <div class="cards" id="cards"></div>
+  <div class="sheet" style="margin-top:1rem">
+    <h3>Checkpoint: match each polymer to its monomer</h3>
+    <div id="cp1"></div>
+    <button class="btn" data-check="cp1">Check my answers</button>
+    <button class="hintBtn" data-hint="h1">Need a hint?</button>
+    <div class="hint" id="h1">Flip the cards again and look for the word <b>Monomer</b> on the back. Lipids are the odd one out — they are built from glycerol and fatty acids.</div>
+    <div class="fb" id="cp1fb"></div>
+  </div>
+  <div class="navrow"><button class="btn ghost" data-back>Back</button><button class="btn" data-next disabled>Next</button></div>
+</section>
+
+<!-- 2 REAGENT TRAINING -->
+<section data-part="2" class="screen" data-title="Reagent training">
+  <div class="partBanner"><b>Part 2</b> Test reference</div>
+  <div class="sheet readable">
+    <button class="readBtn" data-read>🔊 Read to me</button>
+    <h2>Train on the tests</h2>
+    <p>A <span class="kw" title="A chemical that changes color or look when a certain molecule is present">reagent</span> is a chemical that changes when a certain molecule is there. Before you test Biscuit's sample, learn what each test looks like.</p>
+    <p>For each test, tap <b>Run test</b> to see two results side by side. ✏️ Record the negative and positive results on your sheet.</p>
+    <p>Three of the tests use reagents. The fourth is the <b>brown paper bag test</b> for lipids (fat or oil): rub a dab on the bag, let it dry, then hold it up to the light. A greasy, see-through spot that stays means lipid. If the spot disappears when dry, it is negative.</p>
+  </div>
+  <div id="training"></div>
+  <div class="sheet cer">
+    <h3>Why test distilled water?</h3>
+    <p id="cp2b"></p>
+    <button class="btn" data-check="cp2b">Check my answers</button>
+    <button class="hintBtn" data-hint="h2b">Need a hint?</button>
+    <div class="hint" id="h2b">Look back at the distilled water sample in each test. It showed the "no" color, so think about which kind of control it is.</div>
+    <div class="fb" id="cp2bfb"></div>
+  </div>
+  <div class="sheet">
+    <h3>Checkpoint: what does "positive" look like?</h3>
+    <div id="cp2"></div>
+    <button class="btn" data-check="cp2">Check my answers</button>
+    <button class="hintBtn" data-hint="h2">Need a hint?</button>
+    <div class="hint" id="h2">Look at the known sample for each test — that's what a <b>positive</b> result looks like. The water sample shows <b>negative</b>.</div>
+    <div class="fb" id="cp2fb"></div>
+  </div>
+  <div class="navrow"><button class="btn ghost" data-back>Back</button><button class="btn" data-next disabled>Next</button></div>
+</section>
+
+<!-- 4 PREDICT -->
+<section data-part="3" class="screen" data-title="Predict">
+  <div class="partBanner"><b>Part 3</b> Predict, then test</div>
+  <div class="sheet readable">
+    <button class="readBtn" data-read>🔊 Read to me</button>
+    <h2>Predict</h2>
+    <p>These five foods were on the counter. Check the box if you think the food <b>has</b> that molecule. There are no wrong answers here — scientists predict first, then test. ✏️ Copy your predictions onto your sheet.</p>
+  </div>
+  <div class="sheet tablewrap"><table class="pred" id="predTable"></table></div>
+  <div class="navrow"><button class="btn ghost" data-back>Back</button><button class="btn" data-next>Lock in predictions</button></div>
+</section>
+
+<!-- 5 TEST FOODS -->
+<section data-part="3" class="screen" data-title="Test the counter">
+  <div class="partBanner"><b>Part 3</b> Predict, then test</div>
+  <div class="sheet readable">
+    <button class="readBtn" data-read>🔊 Read to me</button>
+    <h2>Test the counter foods</h2>
+    <p><b>1.</b> Tap a tube or bag to run the test. <b>2.</b> Watch what happens. <b>3.</b> Tap <b>+</b> (positive, molecule is there) or <b>−</b> (negative, not there) under it to record the result. <b>Next unlocks after all 20 are recorded.</b> Use your reference if you forget. ✏️ Write each result on your sheet too.</p>
+    <p class="status" id="foodProgress">0 of 20 recorded</p>
+  </div>
+  <div class="sheet">
+    <div class="colhead"><div></div><div><span>Benedict's<br>(sugar)</span><span>Iodine<br>(starch)</span><span>Biuret<br>(protein)</span><span>Brown paper bag<br>(lipid)</span></div></div>
+    <div id="foodGrid"></div>
+    <button class="hintBtn" data-hint="h5">Show my reference</button>
+    <div class="hint" id="h5"><span id="refText"></span></div>
+  </div>
+  <div class="navrow"><button class="btn ghost" data-back>Back</button><button class="btn" data-next disabled>Next</button></div>
+</section>
+
+<!-- 6 MYSTERY -->
+<section data-part="3" class="screen" data-title="Stomach sample">
+  <div class="partBanner"><b>Part 3</b> Predict, then test</div>
+  <div class="sheet readable">
+    <button class="readBtn" data-read>🔊 Read to me</button>
+    <h2>Test Biscuit's stomach sample</h2>
+    <p>This is the real evidence. Tap each tube or bag to run the test, then tap <b>+</b> or <b>−</b> under it to record the result. <b>Next unlocks after all 4 are recorded.</b> ✏️ Write them on your sheet too.</p>
+  </div>
+  <div class="sheet"><div class="bench" id="mysteryBench"></div><p class="status" id="mysteryProgress"></p></div>
+  <div class="navrow"><button class="btn ghost" data-back>Back</button><button class="btn" data-next disabled>Open the case file</button></div>
+</section>
+
+<!-- 7 CER -->
+<section data-part="4" class="screen" data-title="Case file (CER)">
+  <div class="partBanner"><b>Part 4</b> Close the case: Claim, Evidence, Reasoning</div>
+  <div class="sheet readable">
+    <button class="readBtn" data-read>🔊 Read to me</button>
+    <h2>Close the case</h2>
+    <p>Compare the stomach sample to your food results. Which food has the <b>same pattern</b>? Complete the case file. ✏️ Then write your CER on your sheet in your own words.</p>
+  </div>
+  <div class="sheet tablewrap" id="compareBox"></div>
+  <div class="sheet cer" id="cer"></div>
+  <div class="navrow"><button class="btn ghost" data-back>Back</button><button class="btn" data-next disabled>Next</button></div>
+</section>
+
+<!-- 7b QUICK CHECK -->
+<section data-part="5" class="screen" data-title="Quick check">
+  <div class="partBanner"><b>Part 5</b> Quick check</div>
+  <div class="sheet readable">
+    <button class="readBtn" data-read>🔊 Read to me</button>
+    <h2>Quick check</h2>
+    <p>Show what you learned. ✏️ Write your answers in Part 5 of your sheet too.</p>
+  </div>
+  <div class="sheet cer">
+    <div id="qc"></div>
+    <button class="btn" data-check="qc">Check questions 1 and 2</button>
+    <button class="hintBtn" data-hint="hqc">Need a hint?</button>
+    <div class="hint" id="hqc">Flip back to the molecule cards in Part 1 and look at the <b>Monomer</b> side. Starch is a carbohydrate made of many sugar units.</div>
+    <div class="fb" id="qcfb"></div>
+  </div>
+  <div class="sheet" id="qc3"></div>
+  <div class="navrow"><button class="btn ghost" data-back>Back</button><button class="btn" data-next disabled>Next</button></div>
+</section>
+
+<!-- 8 GOING FURTHER -->
+<section data-part="6" class="screen" data-title="Going further">
+  <div class="partBanner"><b>★</b> Going Further (challenge)</div>
+  <div class="sheet readable">
+    <button class="readBtn" data-read>🔊 Read to me</button>
+    <h2>Going further (optional challenge)</h2>
+    <p>Want to think like a biochemist? Try these. You can skip ahead any time.</p>
+  </div>
+  <div class="sheet" id="cp8"></div>
+  <div class="navrow"><button class="btn ghost" data-back>Back</button><button class="btn" data-next>Finish the case</button></div>
+</section>
+
+<!-- 9 COMPLETE -->
+<section data-part="7" class="screen" data-title="Case closed">
+  <div class="sheet">
+    <div class="stamp">
+      <h2>Case closed</h2>
+      <p id="doneWho"></p>
+      <div class="code" id="doneCode"></div>
+      <p class="muted" id="doneTime"></p>
+    </div>
+    <p style="margin-top:1rem">✏️ Write your case code at the top of your data sheet. Show this screen to your teacher or sub before you close it.</p>
+    <p id="doneStats"></p>
+    <div class="tablewrap"><table class="summary" id="doneTable"></table></div>
+  </div>
+  <div class="navrow"><button class="btn ghost" data-back>Back</button><span></span></div>
+</section>
+
+</main>
+
+<script>
+/* ---------- HELPERS ---------- */
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function canUnlock(sc){return !sc.querySelector('select:not(.ok)') && !sc.querySelector('.opts:not(.solved)');}
+
+/* ---------- DATA ---------- */
+var TESTS = [
+  {id:'ben', name:"Benedict's", mol:'simple sugars', heat:true,
+   start:'#5A8BE0', neg:'#3F74D8', pos:'#E2702E',
+   negTxt:'Stayed blue after heating', posTxt:'Turned orange after heating',
+   negWord:'blue', posWord:'orange / red', control:'Glucose solution'},
+  {id:'iod', name:'Iodine', mol:'starch',
+   start:'#D8A14A', neg:'#D39A3A', pos:'#231F40',
+   negTxt:'Stayed yellow-brown', posTxt:'Turned blue-black',
+   negWord:'yellow-brown', posWord:'blue-black', control:'Starch solution'},
+  {id:'biu', name:'Biuret', mol:'protein',
+   start:'#5A8FDD', neg:'#4C86DA', pos:'#8A4BB0',
+   negTxt:'Stayed blue', posTxt:'Turned purple',
+   negWord:'blue', posWord:'purple', control:'Egg white'},
+  {id:'sud', name:'Brown paper bag', mol:'lipids', bag:true,
+   neg:'#C49A62', pos:'#F2D58A',
+   negTxt:'Spot disappeared when dry', posTxt:'Greasy, see-through spot stayed',
+   negWord:'spot disappears when dry', posWord:'greasy, see-through spot that stays', control:'Vegetable oil'}
+];
+var FOODS = [
+  {id:'grape', name:'Grapes',        base:'#E8F2DA', r:{ben:1,iod:0,biu:0,sud:0}},
+  {id:'bread', name:'White bread',   base:'#F4EFE3', r:{ben:0,iod:1,biu:1,sud:0}},
+  {id:'pb',    name:'Peanut butter', base:'#EEDCC0', r:{ben:0,iod:0,biu:1,sud:1}},
+  {id:'milk',  name:'Milk',          base:'#F7F7F4', r:{ben:1,iod:0,biu:1,sud:1}},
+  {id:'choc',  name:'Chocolate candy',base:'#E6D5C8', r:{ben:1,iod:0,biu:0,sud:1}}
+];
+var MYSTERY = {id:'mys', name:'Stomach sample', base:'#EDEBDD', r:{ben:1,iod:0,biu:0,sud:0}};
+
+var MOLS = [
+  {n:'Carbohydrates', icon:'🍞', mono:'Monosaccharides (simple sugars like glucose)', el:'C, H, O', job:'Quick energy (plants store extra as starch)', ex:'Fruit, bread, pasta, sugar', test:"Benedict's (sugars) and iodine (starch)"},
+  {n:'Lipids', icon:'🧈', mono:'Glycerol + fatty acids (not a true monomer)', el:'C, H, O', job:'Long-term energy storage (also insulation and cell membranes)', ex:'Butter, oil, nuts, blubber', test:'Brown paper bag test'},
+  {n:'Proteins', icon:'🥚', mono:'Amino acids', el:'C, H, O, N (some S)', job:'Build muscle / enzymes (also antibodies)', ex:'Eggs, meat, beans, milk', test:'Biuret'},
+  {n:'Nucleic acids', icon:'🧬', mono:'Nucleotides', el:'C, H, O, N, P', job:'Store genetic information (DNA, RNA)', ex:'Found in every cell, but only in tiny amounts', test:'Not tested today'}
+];
+
+/* ---------- STATE ---------- */
+var S = {cur:0, name:'', hour:'', first:{right:0,total:0}, pred:{}, rec:{}, tried:{}, start:new Date()};
+var screens = [].slice.call(document.querySelectorAll('.screen'));
+
+/* ---------- NAV ---------- */
+function buildSteps(){
+  var s=document.getElementById('steps'); s.innerHTML='';
+  screens.forEach(function(sc,i){var d=document.createElement('span');d.title=sc.dataset.title;
+    var cls=[]; if(i<S.cur)cls.push('done'); if(i===S.cur)cls.push('now');
+    if(i>0 && sc.dataset.part!==screens[i-1].dataset.part)cls.push('gap');
+    d.className=cls.join(' '); s.appendChild(d);});
+}
+function go(i){
+  if(window.speechSynthesis) speechSynthesis.cancel(); resetRead();
+  screens[S.cur].classList.remove('active'); S.cur=i; screens[i].classList.add('active');
+  buildSteps(); window.scrollTo(0,0);
+  if(screens[i].dataset.title==='Case file (CER)') buildCompare();
+  if(screens[i].dataset.title==='Case closed') buildDone();
+}
+function unlock(sc){ var b=sc.querySelector('[data-next]'); if(b) b.disabled=false; }
+document.addEventListener('click',function(e){
+  var t=e.target.closest('button'); if(!t) return;
+  if(t.hasAttribute('data-next')) go(S.cur+1);
+  if(t.hasAttribute('data-back')) go(S.cur-1);
+  if(t.dataset.hint) document.getElementById(t.dataset.hint).classList.toggle('show');
+  if(t.hasAttribute('data-read')) readAloud(t.closest('.readable'),t);
+});
+var readBtnNow=null;
+function resetRead(){ if(readBtnNow){ readBtnNow.textContent='🔊 Read to me'; } readBtnNow=null; }
+function readAloud(el,btn){
+  var ss=window.speechSynthesis;
+  if(!ss||typeof SpeechSynthesisUtterance==='undefined'){ btn.textContent='🔇 Audio not available on this device'; return; }
+  var wasThis=(readBtnNow===btn);
+  if(ss.speaking||ss.pending){ ss.cancel(); resetRead(); if(wasThis) return; }
+  var txt=el.innerText.replace(/🔊 Read to me|⏹ Stop reading|🔇[^\n]*/g,'').replace(/✏️/g,'').replace(/\s+/g,' ').trim();
+  var parts=txt.match(/[^.!?]+[.!?]*/g)||[txt];
+  var voices=ss.getVoices(), v=null;
+  for(var i=0;i<voices.length;i++){ if(/^en[-_]US/i.test(voices[i].lang)){ v=voices[i]; if(voices[i].localService) break; } }
+  readBtnNow=btn; btn.textContent='⏹ Stop reading';
+  window._utts=[];
+  var speakAll=function(){
+    parts.forEach(function(p,i){
+      var u=new SpeechSynthesisUtterance(p.trim()); u.lang='en-US'; u.rate=.92; if(v) u.voice=v;
+      if(i===parts.length-1) u.onend=resetRead;
+      u.onerror=function(e){ if(e.error!=='canceled'&&e.error!=='interrupted'){ btn.textContent='🔇 No sound, check volume'; readBtnNow=null; } };
+      window._utts.push(u); ss.speak(u);
+    });
+    ss.resume();
+  };
+  speakAll();
+}
+if(window.speechSynthesis){ speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged=function(){ speechSynthesis.getVoices(); }; }
+function firstTry(key,correct){
+  if(S.tried[key]) return; S.tried[key]=true; S.first.total++; if(correct) S.first.right++;
+}
+
+/* ---------- BRIEFING ---------- */
+var nameEl=document.getElementById('stuName'), hourEl=document.getElementById('stuHour'), startBtn=document.getElementById('startBtn');
+function checkSign(){ startBtn.disabled=!(nameEl.value.trim().length>1 && hourEl.value); }
+nameEl.addEventListener('input',checkSign); hourEl.addEventListener('change',checkSign);
+startBtn.addEventListener('click',function(){S.name=nameEl.value.trim();S.hour=hourEl.value;S.start=new Date();go(1);});
+
+/* ---------- CARDS ---------- */
+(function(){
+  var c=document.getElementById('cards');
+  MOLS.forEach(function(m){
+    var b=document.createElement('button'); b.className='flip'; b.setAttribute('aria-label',m.n+' card, tap to flip');
+    b.innerHTML='<div class="in"><div class="face front"><div style="font-size:2.2rem">'+m.icon+'</div><div class="big">'+m.n+'</div><div class="muted">Tap to flip</div></div>'+
+      '<div class="face back"><div><b>Monomer:</b> '+m.mono+'</div><div><b>Elements:</b> '+m.el+'</div><div><b>Job:</b> '+m.job+'</div><div><b>Found in:</b> '+m.ex+'</div><div><b>Lab test:</b> '+m.test+'</div></div></div>';
+    b.addEventListener('click',function(){b.classList.toggle('flipped');});
+    c.appendChild(b);
+  });
+})();
+
+/* ---------- DROPDOWN CHECKPOINT BUILDER ---------- */
+function buildDrop(boxId, items){
+  var box=document.getElementById(boxId);
+  items.forEach(function(it,i){
+    var d=document.createElement('div'); d.className='q';
+    var opts='<option value="">Choose…</option>'+it.choices.map(function(c){return '<option>'+c+'</option>';}).join('');
+    d.innerHTML='<label>'+it.q.replace('___','<select data-ans="'+it.a+'" data-key="'+boxId+'_'+i+'">'+opts+'</select>')+'</label>';
+    box.appendChild(d);
+  });
+}
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-check]'); if(!t) return;
+  var id=t.dataset.check, sels=document.querySelectorAll('#'+id+' select'), all=true;
+  sels.forEach(function(s){
+    var ok=s.value===s.dataset.ans; if(s.value) firstTry(s.dataset.key,ok);
+    s.classList.remove('ok','no'); s.classList.add(ok?'ok':'no'); if(!ok) all=false;
+  });
+  var fb=document.getElementById(id+'fb');
+  if(all){fb.className='fb ok';var sc=t.closest('.screen');if(canUnlock(sc)){fb.textContent='All correct. Tap Next.';unlock(sc);}else{fb.textContent='All correct here! Now finish the other question(s) on this page to unlock Next.';}}
+  else{fb.className='fb no';fb.textContent='Red boxes need another look. Try the hint if you are stuck.';t.classList.add('shake');setTimeout(function(){t.classList.remove('shake');},400);}
+});
+var monoChoices=['Monosaccharides','Amino acids','Nucleotides','Glycerol + fatty acids'];
+buildDrop('cp1',[
+  {q:'Carbohydrates are built from ___',a:'Monosaccharides',choices:monoChoices},
+  {q:'Proteins are built from ___',a:'Amino acids',choices:monoChoices},
+  {q:'Nucleic acids are built from ___',a:'Nucleotides',choices:monoChoices},
+  {q:'Lipids are built from ___',a:'Glycerol + fatty acids',choices:monoChoices},
+  {q:'The macromolecule we will NOT test for today is ___',a:'Nucleic acids',choices:['Carbohydrates','Lipids','Proteins','Nucleic acids']}
+]);
+
+/* ---------- TUBE ---------- */
+var tubeCount=0;
+function tubeSVG(fill){
+  var id='c'+(tubeCount++);
+  return '<svg viewBox="0 0 48 124" aria-hidden="true"><defs><clipPath id="'+id+'"><path d="M8 6 H40 V100 a16 16 0 0 1 -32 0 Z"/></clipPath></defs>'+
+    '<g clip-path="url(#'+id+')"><rect x="0" y="0" width="48" height="124" fill="#fff"/>'+
+    '<rect class="liq" x="0" y="40" width="48" height="90" fill="'+fill+'"/>'+
+    '<rect class="top" x="0" y="40" width="48" height="16" fill="'+fill+'"/></g>'+
+    '<path d="M8 6 H40 V100 a16 16 0 0 1 -32 0 Z" fill="none" stroke="#1D2B36" stroke-width="2.5"/>'+
+    '<path d="M4 6 H44" stroke="#1D2B36" stroke-width="3" stroke-linecap="round"/></svg>';
+}
+function bagSVG(dab){
+  return '<svg viewBox="0 0 48 124" aria-hidden="true">'+
+    '<path class="bagbody" d="M7 14 H41 V108 a2 2 0 0 1 -2 2 H9 a2 2 0 0 1 -2 -2 Z" fill="#C49A62" stroke="#1D2B36" stroke-width="2.5"/>'+
+    '<path d="M7 14 L12 8 H36 L41 14" fill="#B3874F" stroke="#1D2B36" stroke-width="2.5" stroke-linejoin="round"/>'+
+    '<path d="M24 14 V108" stroke="#1D2B36" stroke-opacity=".18" stroke-width="1.5"/>'+
+    '<circle class="glow" cx="24" cy="66" r="15" fill="#FFF3C4" opacity="0"/>'+
+    '<circle class="spot" cx="24" cy="66" r="10" fill="'+dab+'" stroke="#1D2B36" stroke-opacity=".35" stroke-width="1.5" opacity="1"/></svg>';
+}
+function vessel(test,fill){ return test.bag?bagSVG(fill):tubeSVG(fill); }
+function runBag(wrap, test, positive, done){
+  var spot=wrap.querySelector('.spot'), glow=wrap.querySelector('.glow'), body=wrap.querySelector('.bagbody'), obs=wrap.querySelector('.obs');
+  obs.textContent='Rubbing a dab on the bag…';
+  setTimeout(function(){
+    obs.textContent='Letting the bag dry…';
+    if(positive){ spot.setAttribute('fill','#A9772F'); spot.setAttribute('opacity','.55'); }
+    else { spot.setAttribute('opacity','0'); }
+    setTimeout(function(){
+      obs.textContent='Holding it up to the light…';
+      body.setAttribute('fill','#E3C48C');
+      if(positive){ glow.setAttribute('opacity','.9'); spot.setAttribute('fill','#FFE9A8'); spot.setAttribute('opacity','1'); }
+      setTimeout(function(){
+        obs.textContent=positive?test.posTxt:test.negTxt;
+        if(done) done();
+      },900);
+    },1000);
+  },700);
+}
+function runTube(wrap, test, positive, done){
+  if(test.bag){ return runBag(wrap,test,positive,done); }
+  var liq=wrap.querySelector('.liq'), top=wrap.querySelector('.top'), obs=wrap.querySelector('.obs');
+  liq.setAttribute('fill',test.start); top.setAttribute('fill',test.start);
+  obs.textContent='Adding '+test.name+'…';
+  setTimeout(function(){
+    if(test.heat) obs.textContent='Heating in water bath…';
+    setTimeout(function(){
+      var c=positive?test.pos:test.neg; liq.setAttribute('fill',c); top.setAttribute('fill',c);
+      obs.textContent=positive?test.posTxt:test.negTxt;
+      if(done) done();
+    }, test.heat?1300:700);
+  },700);
+}
+
+/* ---------- TRAINING ---------- */
+(function(){
+  var box=document.getElementById('training'), finished=0;
+  TESTS.forEach(function(t){
+    var b=document.createElement('div'); b.className='sheet reagentBlock';
+    b.innerHTML='<h3><span>'+t.name+' test</span><span class="muted" style="font-weight:500">looks for '+t.mol+'</span></h3>'+
+      '<div class="bench"><div class="tubeWrap" data-w="0"><div class="tube">'+vessel(t,t.bag?'#CFE3EE':'#F2F6F8')+'</div><div class="lbl">Distilled water</div><div class="obs"></div></div>'+
+      '<div class="tubeWrap" data-w="1"><div class="tube">'+vessel(t,t.bag?'#EFD98A':'#F2F6F8')+'</div><div class="lbl">'+t.control+'</div><div class="obs"></div></div></div>'+
+      '<div style="text-align:center"><button class="btn">Run test</button></div>'+
+      '<div class="ref"><span class="sw"><i style="background:'+t.neg+'"></i><b>Negative (−):</b> '+t.negWord+'</span><span class="sw"><i style="background:'+t.pos+'"></i><b>Positive (+):</b> '+t.posWord+'</span></div>';
+    var btn=b.querySelector('button.btn');
+    btn.addEventListener('click',function(){
+      btn.disabled=true;
+      var w=b.querySelectorAll('.tubeWrap');
+      runTube(w[0],t,false); runTube(w[1],t,true,function(){b.querySelector('.ref').classList.add('show');btn.textContent='Done';});
+    });
+    box.appendChild(b);
+  });
+})();
+(function(){
+  function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  function sel(k,ans,ch){return '<select data-ans="'+ans+'" data-key="cp2b_'+k+'"><option value="">Choose…</option>'+shuf(ch).map(function(c){return '<option>'+c+'</option>';}).join('')+'</select>';}
+  document.getElementById('cp2b').innerHTML='Distilled water was the '+sel(0,'negative',['negative','positive'])+' control because it has '+
+    sel(1,'none of the molecules',['none of the molecules','all four molecules','only sugar'])+', so it shows what a '+sel(2,'negative',['negative','positive'])+' result looks like.';
+})();
+var colorChoices=['blue','orange / red','yellow-brown','blue-black','purple','greasy, see-through spot that stays','spot disappears when dry'];
+buildDrop('cp2',[
+  {q:"A positive Benedict's test (simple sugars) turns ___",a:'orange / red',choices:colorChoices},
+  {q:'A positive iodine test (starch) turns ___',a:'blue-black',choices:colorChoices},
+  {q:'A positive Biuret test (protein) turns ___',a:'purple',choices:colorChoices},
+  {q:'A positive brown paper bag test (lipids) leaves a ___',a:'greasy, see-through spot that stays',choices:colorChoices},
+  {q:'Biuret reagent tests for ___',a:'protein',choices:['simple sugars','starch','protein','lipids']}
+]);
+
+/* ---------- MC BUILDER ---------- */
+function buildMC(boxId, items, onAll){
+  var box=document.getElementById(boxId), solved=0;
+  items.forEach(function(it,qi){
+    var d=document.createElement('div'); d.className='q';
+    d.innerHTML='<h3>'+it.q+'</h3><div class="opts"></div><div class="fb"></div>';
+    var o=d.querySelector('.opts'), fb=d.querySelector('.fb'), done=false;
+    shuf(it.o.map(function(_,i){return i;})).forEach(function(oi){
+      var txt=it.o[oi];
+      var b=document.createElement('button'); b.className='opt'; b.textContent=txt;
+      b.addEventListener('click',function(){
+        if(done) return; var ok=oi===it.a; firstTry(boxId+'_'+qi,ok);
+        if(ok){ b.classList.add('ok'); fb.className='fb ok'; fb.textContent=it.yes; done=true; o.classList.add('solved'); solved++; if(solved===items.length&&onAll) onAll(); }
+        else { b.classList.add('no'); fb.className='fb no'; fb.textContent=it.no; }
+      });
+      o.appendChild(b);
+    });
+    box.appendChild(d);
+  });
+}
+
+/* ---------- PREDICT ---------- */
+(function(){
+  var t=document.getElementById('predTable');
+  var h='<tr><th>Food</th>'+TESTS.map(function(x,i){return '<th>'+["Simple sugar<br>(Benedict's)",'Starch<br>(Iodine)','Protein<br>(Biuret)','Lipid<br>(Brown paper bag)'][i]+'</th>';}).join('')+'</tr>';
+  FOODS.forEach(function(f){
+    h+='<tr><td>'+f.name+'</td>'+TESTS.map(function(x){return '<td><input type="checkbox" aria-label="'+f.name+' has '+x.mol+'" data-p="'+f.id+'_'+x.id+'"></td>';}).join('')+'</tr>';
+  });
+  t.innerHTML=h;
+  t.addEventListener('change',function(e){ if(e.target.dataset.p) S.pred[e.target.dataset.p]=e.target.checked; });
+})();
+
+/* ---------- RECORD TUBES (foods + mystery) ---------- */
+function makeRecordTube(food,test,onRecorded,withLabel){
+  var w=document.createElement('div'); w.className='tubeWrap';
+  w.innerHTML=(withLabel?'<div class="lbl"><b>'+test.name+'</b><br>'+test.mol+'</div>':'')+
+    '<button class="tube" aria-label="Run the '+test.name+' test on '+food.name+'">'+vessel(test,food.base)+'</button><div class="obs">Tap to test</div>'+
+    '<div class="pm" style="visibility:hidden"><button aria-label="Positive">+</button><button aria-label="Negative">−</button></div>';
+  var ran=false, recorded=false, pm=w.querySelector('.pm');
+  w.querySelector('.tube').addEventListener('click',function(){
+    if(ran) return; ran=true;
+    runTube(w,test,!!food.r[test.id],function(){pm.style.visibility='visible';pm.classList.add('ask');});
+  });
+  var bs=pm.querySelectorAll('button');
+  [1,0].forEach(function(val,i){
+    bs[i].addEventListener('click',function(){
+      if(recorded) return;
+      var ok=(food.r[test.id]===val); firstTry('rec_'+food.id+'_'+test.id,ok);
+      if(ok){ bs[i].classList.add('ok'); pm.classList.remove('ask'); recorded=true; S.rec[food.id+'_'+test.id]=val; onRecorded(); }
+      else { bs[i].classList.add('no'); w.querySelector('.obs').textContent='Check the reference: '+test.name+(test.bag?' test':'')+' positive = '+test.posWord+'.';
+        setTimeout(function(){bs[i].classList.remove('no');},900); }
+    });
+  });
+  return w;
+}
+(function(){
+  var g=document.getElementById('foodGrid'), n=0, prog=document.getElementById('foodProgress'), left=[];
+  function leftTxt(arr){ return arr.length&&arr.length<=6 ? ' · Still to record: '+arr.join(', ') : ''; }
+  FOODS.forEach(function(f){
+    var row=document.createElement('div'); row.className='foodRow';
+    row.innerHTML='<div class="fname">'+f.name+'</div><div class="tubes"></div>';
+    var tb=row.querySelector('.tubes');
+    TESTS.forEach(function(t){
+      var tag=f.name+' (' +t.name+')'; left.push(tag);
+      tb.appendChild(makeRecordTube(f,t,function(){n++; left.splice(left.indexOf(tag),1); prog.textContent=n+' of 20 recorded'+leftTxt(left);
+        if(n===20){prog.textContent='All 20 recorded. Nice work. Tap Next.';unlock(screens[4]);}},true));
+    });
+    g.appendChild(row);
+  });
+  document.getElementById('refText').innerHTML=TESTS.map(function(t){return '<b>'+t.name+'</b> ('+t.mol+'): + = '+t.posWord+', − = '+t.negWord;}).join('<br>');
+  var mb=document.getElementById('mysteryBench'), m=0, mp=document.getElementById('mysteryProgress'), mleft=[];
+  TESTS.forEach(function(t){
+    mleft.push(t.name);
+    mb.appendChild(makeRecordTube(MYSTERY,t,function(){m++; mleft.splice(mleft.indexOf(t.name),1); mp.textContent=m+' of 4 recorded'+(mleft.length?' · Still to record: '+mleft.join(', '):'');
+      if(m===4){mp.textContent='Evidence complete. Tap Next.';unlock(screens[5]);}},true));
+  });
+})();
+
+/* ---------- COMPARE + CER ---------- */
+function sym(v){return v?'+':'−';}
+function resultsTable(){
+  var hdr=["Simple sugar<br>(Benedict's)",'Starch<br>(Iodine)','Protein<br>(Biuret)','Lipid<br>(Brown paper bag)'];
+  var h='<tr><th rowspan="2">Sample</th>'+hdr.map(function(x){return '<th colspan="2">'+x+'</th>';}).join('')+'</tr><tr>'+TESTS.map(function(){return '<th>Predict</th><th>Result</th>';}).join('')+'</tr>';
+  FOODS.concat([MYSTERY]).forEach(function(f){
+    var my=(f.id==='mys');
+    h+='<tr'+(my?' style="font-weight:700;background:#FFF7DA"':'')+'><td>'+f.name+'</td>'+TESTS.map(function(t){
+      var res=f.r[t.id], pc;
+      if(my){ pc='<td>—</td>'; }
+      else { var pred=S.pred[f.id+'_'+t.id]?1:0, miss=(pred!==res); pc='<td'+(miss?' class="miss"':'')+'>'+sym(pred)+(miss?' ✗':'')+'</td>'; }
+      return pc+'<td>'+sym(res)+'</td>';
+    }).join('')+'</tr>';
+  });
+  return h;
+}
+function buildCompare(){
+  document.getElementById('compareBox').innerHTML='<h3>Your predictions and results</h3><table class="summary">'+resultsTable()+'</table><p class="muted">✗ (red) = your prediction did not match the result. ✏️ Pick one for <b>Reflect</b> on your sheet.</p>';
+}
+(function(){
+  var foods=FOODS.map(function(f){return f.name.toLowerCase();});
+  var parts=[
+    {lab:'Claim', html:'Biscuit most likely ate the {grapes|'+foods.join('|')+'}.'},
+    {lab:'Evidence', html:'The stomach sample tested positive for {simple sugars|simple sugars|starch|protein|lipids} and negative for {starch, protein, and lipids|starch, protein, and lipids|simple sugars and starch|protein and lipids|simple sugars only}. The {grapes|'+foods.join('|')+'} had the same results: {positive for simple sugars only|positive for simple sugars only|positive for starch and protein only|positive for protein and lipids only|positive for all four}.'},
+    {lab:'Reasoning', html:'Each test only gives a positive result when its molecule is present, so a food and the sample with the same {pattern|pattern|price|color|number} of results have the same macromolecules. It was not the chocolate because chocolate tested positive for {lipids|lipids|starch|protein} and the sample did not. It was not the milk because milk tested positive for {protein and lipids|protein and lipids|starch|starch and lipids} and the sample did not.'},
+    {lab:'Why it matters', html:'Grapes can cause {kidney damage|kidney damage|broken bones|sunburn|hair loss} in dogs, so the lab results told the vet to start treatment right away.'}
+  ];
+  var box=document.getElementById('cer'), k=0;
+  var html='<h3>Case file</h3>';
+  parts.forEach(function(p){
+    var s=p.html.replace(/\{([^}]+)\}/g,function(_,inner){
+      var bits=inner.split('|'), ans=bits[0], ch=shuf(bits.slice(1));
+      return '<select data-ans="'+ans+'" data-key="cer_'+(k++)+'"><option value="">Choose…</option>'+ch.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select>';
+    });
+    html+='<p><span class="cerLabel">'+p.lab+':</span> '+s+'</p>';
+  });
+  html+='<p class="muted">✏️ On your sheet, also finish <b>Reflect</b>: one prediction you got wrong, and why it surprised you.</p>';
+  html+='<button class="btn" id="cerCheck">Check my case file</button> <button class="hintBtn" data-hint="h7">Need a hint?</button>'+
+    '<div class="hint" id="h7">Look at the yellow row in the table, in the <b>Result</b> columns. Find the food row with the exact same + and − pattern in its Result columns. For the reasoning, look at which tests were + for chocolate and milk but − for the sample.</div>'+
+    '<div class="fb" id="cerfb"></div><div class="hint" id="cerWin"><b>Case solved.</b> Grapes and raisins are toxic to dogs, even in small amounts. Because of your results, the vet team starts treatment right away. Biscuit is going to be okay.</div>';
+  box.innerHTML=html;
+  document.getElementById('cerCheck').addEventListener('click',function(){
+    var all=true;
+    box.querySelectorAll('select').forEach(function(s){var ok=s.value===s.dataset.ans; if(s.value) firstTry(s.dataset.key,ok);
+      s.classList.remove('ok','no'); s.classList.add(ok?'ok':'no'); if(!ok) all=false;});
+    var fb=document.getElementById('cerfb');
+    if(all){fb.className='fb ok';fb.textContent='Every blank is correct.';document.getElementById('cerWin').classList.add('show');unlock(screens[6]);}
+    else{fb.className='fb no';fb.textContent='Red boxes need another look. Use the table above.';}
+  });
+})();
+
+/* ---------- QUICK CHECK ---------- */
+(function(){
+  var box=document.getElementById('qc'), k=0;
+  [
+   '<b>1.</b> Peanut butter tested + for protein and + for lipids. Name the building blocks of each: protein → {amino acids|amino acids|monosaccharides|nucleotides|glycerol + fatty acids} and lipid → {glycerol + fatty acids|amino acids|monosaccharides|nucleotides|glycerol + fatty acids}',
+   '<b>2.</b> White bread tested + for starch but − for simple sugars. Starch and simple sugars are both {carbohydrates|carbohydrates|lipids|proteins|nucleic acids}, but starch is a long {polymer|polymer|monomer|reagent|control} made of many {monosaccharides|monosaccharides|amino acids|nucleotides|fatty acids} joined together.'
+  ].forEach(function(q){
+    var p=document.createElement('p');
+    p.innerHTML=q.replace(/\{([^}]+)\}/g,function(_,inner){
+      var bits=inner.split('|'), ans=bits[0], ch=shuf(bits.slice(1));
+      return '<select data-ans="'+ans+'" data-key="qc_'+(k++)+'"><option value="">Choose…</option>'+ch.map(function(c){return '<option>'+c+'</option>';}).join('')+'</select>';
+    });
+    box.appendChild(p);
+  });
+  buildMC('qc3',[
+    {q:'3. A classmate says, “Positive means the food is healthy.” Which correction is best?',
+     o:['Positive only means the molecule is present. It does not tell you if the food is healthy.','Positive means the food is safe for dogs.','Positive means the test did not work.','Positive means the food has all four macromolecules.'],
+     a:0, yes:'Right. A positive test only tells you which molecule is in the food, not whether the food is good or bad for you.', no:'Think about what the test actually detects. What does a positive result tell you?'}
+  ], function(){ if(canUnlock(screens[7])) unlock(screens[7]); });
+})();
+
+/* ---------- GOING FURTHER ---------- */
+buildMC('cp8',[
+  {q:'Grapes come from a plant, and plants store energy as starch. So why did grapes test NEGATIVE for starch?',
+   o:['The iodine was broken','Ripe fruit stores its energy mostly as simple sugars, not starch','Grapes are not made of cells','Starch and sugar are the same thing'],
+   a:1, yes:'Yes. As fruit ripens, it breaks starch down into sugars like glucose and fructose. That is why ripe fruit tastes sweet.', no:'Remember: the iodine worked on the starch control, so the reagent was fine.'},
+  {q:'Every food in this lab came from living cells, so every food has DNA. Why don’t we test for nucleic acids?',
+   o:['Nucleic acids are only in animals','DNA is present in only tiny amounts compared with carbs, fats, and proteins','Nucleic acids are a kind of lipid','DNA turns every reagent purple'],
+   a:1, yes:'Right. There is DNA in every cell, but by weight it is a tiny part of food and is not a main energy source.', no:'Think about how much of a food is DNA compared with sugar, fat, or protein.'},
+  {q:'A new food tests + for protein and + for lipids only. Could you tell it apart from peanut butter with these four tests? What would a scientist do next?',
+   o:['No. It has the same pattern as peanut butter, so a scientist would run another test.','Yes. It would show different colors than peanut butter.','No, and nothing more could be done.','Yes. Lipids always look different from protein.'],
+   a:0, yes:'Correct. Two foods with the same pattern can not be told apart with these four tests. Scientists would need another test.', no:'Look back at your results table. Does anything else have the same + and − pattern as peanut butter?'}
+]);
+
+/* ---------- DONE ---------- */
+function buildDone(){
+  var pct=S.first.total?Math.round(100*S.first.right/S.first.total):0;
+  var mins=Math.max(1,Math.round((new Date()-S.start)/60000));
+  var initials=S.name.replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase()||'XX';
+  document.getElementById('doneWho').textContent=S.name+' · '+S.hour+' hour';
+  document.getElementById('doneCode').textContent='BISCUIT-'+initials+'-'+pct;
+  document.getElementById('doneTime').textContent=new Date().toLocaleString()+' · about '+mins+' min';
+  var pr=0,pt=0; FOODS.forEach(function(f){TESTS.forEach(function(t){pt++; if(!!S.pred[f.id+'_'+t.id]===!!f.r[t.id]) pr++;});});
+  document.getElementById('doneStats').innerHTML='<b>First-try accuracy:</b> '+S.first.right+' of '+S.first.total+' ('+pct+'%). <b>Predictions that matched your results:</b> '+pr+' of '+pt+'.';
+  document.getElementById('doneTable').innerHTML=resultsTable();
+}
+
+buildSteps();
+</script>
+</body>
+</html>
